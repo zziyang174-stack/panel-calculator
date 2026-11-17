@@ -1,0 +1,28 @@
+name: Publish calculator
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare calculator
+        run: |
+          mkdir -p public/downloads
+          base='https://panel-planner-senmu-8k4r.lucentcello.chatgpt.site'
+          ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36'
+          for f in index.html style.css units.js engine.js layout.js app.js; do
+            curl -fLsS --retry 3 --max-time 60 -A "$ua" "$base/$f" -o "public/$f"
+          done
+          curl -fLsS --retry 3 --max-time 60 -A "$ua" "$base/downloads/senmu-calculator.zip" -o public/downloads/senmu-calculator.zip
+          python3 -c 'from pathlib import Path; assert "id=\"config-form\"" in Path("public/index.html").read_text()'
+          for f in units.js engine.js layout.js app.js; do node --check "public/$f"; done
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - uses: actions/deploy-pages@v4
